@@ -134,12 +134,12 @@ public class LombokBuilderInspection extends AbstractBaseJavaLocalInspectionTool
     private List<String> getMandatoryFields(PsiClass aClass) {
         final Set<String> nonNullAnnotations =
                 Set.of("lombok.NonNull", "org.jetbrains.annotations.NotNull",
-                        "javax.validation.constraints.NotNull");
+                        "javax.validation.constraints.NotNull", "javax.annotation.Nonnull");
         final String defaultBuilderValueAnnotation = "lombok.Builder.Default";
         return Arrays.stream(aClass.getAllFields()).filter(field -> {
             final PsiAnnotation[] annotations = field.getAnnotations();
             final PsiModifierList modifiers = field.getModifierList();
-            final boolean isPrimitiveType = field.getType() instanceof PsiPrimitiveType;
+            final boolean isPrimitiveType = false; // field.getType() instanceof PsiPrimitiveType;
             final boolean isStaticField =
                     modifiers != null && modifiers.hasModifierProperty(PsiModifier.STATIC);
             return !isStaticField && (isPrimitiveType || Arrays.stream(annotations)
