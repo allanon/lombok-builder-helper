@@ -1,5 +1,6 @@
 package com.dguner.lombokbuilderhelper;
 
+import com.intellij.codeInsight.NullableNotNullManager;
 import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -20,7 +21,6 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiModifierList;
-import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReturnStatement;
 import com.intellij.psi.impl.source.tree.java.PsiIdentifierImpl;
@@ -131,10 +131,8 @@ public class LombokBuilderInspection extends AbstractBaseJavaLocalInspectionTool
                         annotation.getQualifiedName()));
     }
 
-    private List<String> getMandatoryFields(PsiClass aClass) {
-        final Set<String> nonNullAnnotations =
-                Set.of("lombok.NonNull", "org.jetbrains.annotations.NotNull",
-                        "javax.validation.constraints.NotNull", "javax.annotation.Nonnull");
+    private List<String> getMandatoryFields(PsiClass aClass, @NotNull Project project) {
+        final List<String> nonNullAnnotations = project.getComponent(NullableNotNullManager.class).getNotNulls();
         final String defaultBuilderValueAnnotation = "lombok.Builder.Default";
         return Arrays.stream(aClass.getAllFields()).filter(field -> {
             final PsiAnnotation[] annotations = field.getAnnotations();
@@ -168,7 +166,7 @@ public class LombokBuilderInspection extends AbstractBaseJavaLocalInspectionTool
                         && Objects.equals(resolvedMethod.getName(), "build")) {
                     PsiClass builderClass = getContainingBuilderClass(resolvedMethod);
                     if (builderClass != null && processMissingFields(expression,
-                            getMandatoryFields(builderClass)).size() > 0) {
+                            getMandatoryFields(builderClass, expression.getProject())).size() > 0) {
                         holder.registerProblem(expression, DESCRIPTION_TEMPLATE,
                                 ProblemHighlightType.GENERIC_ERROR, myQuickFix);
                     }
@@ -186,7 +184,7 @@ public class LombokBuilderInspection extends AbstractBaseJavaLocalInspectionTool
 
             if (resolvedMethod != null) {
                 List<String> missingFields = processMissingFields(expression,
-                        getMandatoryFields(getContainingBuilderClass(resolvedMethod)));
+                        getMandatoryFields(getContainingBuilderClass(resolvedMethod), project));
 
                 if (!missingFields.isEmpty()) {
                     String errorText = expression.getText();
